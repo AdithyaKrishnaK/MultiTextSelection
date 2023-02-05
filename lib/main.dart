@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:multi_text_selection/tripletap.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,7 +27,9 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    routes: {
+      "/": (context) => longselect(),
+    }
     );
   }
 }
@@ -33,14 +37,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -49,17 +45,34 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final List<Rect> _selectionRects = [];
+  TextSelection currentSelection = TextSelection.collapsed(offset: -1);
+  final textKey = GlobalKey();
+  final contentText ="A computer is a machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.";
+  RenderParagraph get _renderParagraph => textKey.currentContext?.findRenderObject() as RenderParagraph;
 
-  void _incrementCounter() {
+  int selectionBaseOffset = -100;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+  void updateSelectionDisplay(){
+    final selectionRectangles = _computeRectsForSelection(currentSelection);
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _selectionRects
+        ..clear()
+          ..addAll(selectionRectangles);
     });
+  }
+
+  List<Rect> _computeRectsForSelection(TextSelection textSelection){
+    if(_renderParagraph == null){
+      return [];
+    }
+    final textBoxes = _renderParagraph.getBoxesForSelection(textSelection);
+    return textBoxes.map((box)=> box.toRect()).toList();
   }
 
   @override
@@ -68,26 +81,76 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.all(10),
-              child: const SelectableText(
-                'A computer is a machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.',
+      body: GestureDetector(
+        onDoubleTapDown: (details){
+          currentSelection = TextSelection.collapsed(offset: selectionBaseOffset);
+          print(currentSelection);
+        },
+        onTapDown: (details){
+          if(selectionBaseOffset==-100){
+            return;
+          }
+          final selectionExtendoffset = _renderParagraph.getPositionForOffset(details.localPosition).offset;
+          currentSelection = TextSelection(baseOffset: selectionBaseOffset, extentOffset: selectionExtendoffset);
+          print(currentSelection.textInside(contentText));
+        },
 
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              CustomPaint(
+                painter:_SelectionPainter(
+                  color:Colors.blue,
+                  rects: _selectionRects,
+                  fill:true
+                )
               ),
-            )
+              Padding(
+                padding: EdgeInsets.all(10),
+                child: Text(
+                  contentText,
+                  style:TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  key: textKey,
+                ),
+              ),
 
-          ],
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ) // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+}
+
+class _SelectionPainter extends CustomPainter {
+  _SelectionPainter({
+    required Color color,
+    required List<Rect> rects,
+    bool fill = true,
+  })  : _color = color,
+        _rects = rects,
+        _fill = fill,
+        _paint = Paint()..color = color;
+
+  final Color _color;
+  final bool _fill;
+  final List<Rect> _rects;
+  final Paint _paint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paint.style = _fill ? PaintingStyle.fill : PaintingStyle.stroke;
+    for (final rect in _rects) {
+      canvas.drawRect(rect, _paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SelectionPainter other) {
+    return true;
   }
 }
