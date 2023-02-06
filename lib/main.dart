@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:multi_text_selection/tripletap.dart';
-
+import 'package:flutter/services.dart';
+import 'package:multi_text_selection/selector_flow2.dart';
+import 'package:multi_text_selection/selector_flow3.dart';
+import 'package:multi_text_selection/selector_flow4.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -10,21 +10,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
     routes: {
@@ -37,7 +27,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 
-
   final String title;
 
   @override
@@ -45,84 +34,85 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Rect> _selectionRects = [];
-  TextSelection currentSelection = TextSelection.collapsed(offset: -1);
-  final textKey = GlobalKey();
-  final contentText ="A computer is a machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.";
-  RenderParagraph get _renderParagraph => textKey.currentContext?.findRenderObject() as RenderParagraph;
 
-  int selectionBaseOffset = -100;
+  static const String flow2 = 'Flow 2';
+  static const String flow3 = 'Flow 3';
+  static const String flow4 = 'Flow 4';
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
-  void updateSelectionDisplay(){
-    final selectionRectangles = _computeRectsForSelection(currentSelection);
-    setState(() {
-      _selectionRects
-        ..clear()
-          ..addAll(selectionRectangles);
-    });
-  }
-
-  List<Rect> _computeRectsForSelection(TextSelection textSelection){
-    if(_renderParagraph == null){
-      return [];
-    }
-    final textBoxes = _renderParagraph.getBoxesForSelection(textSelection);
-    return textBoxes.map((box)=> box.toRect()).toList();
-  }
-
+  String flow = flow3;
+  final demoContent =
+      'A computer is a gay machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.';
+  late SelectorFlow3 selector3 = SelectorFlow3(
+    text: demoContent,
+    style: const TextStyle(),
+  );
+  late SelectorFlow4 selector4 = SelectorFlow4(
+    text: demoContent,
+    style: const TextStyle(),
+  );
+  late SelectorFlow2 selector2 = SelectorFlow2(
+    text: demoContent,
+    style: const TextStyle(),
+  );
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: GestureDetector(
-        onDoubleTapDown: (details){
-          currentSelection = TextSelection.collapsed(offset: selectionBaseOffset);
-          print(currentSelection);
-        },
-        onTapDown: (details){
-          if(selectionBaseOffset==-100){
-            return;
-          }
-          final selectionExtendoffset = _renderParagraph.getPositionForOffset(details.localPosition).offset;
-          currentSelection = TextSelection(baseOffset: selectionBaseOffset, extentOffset: selectionExtendoffset);
-          print(currentSelection.textInside(contentText));
-        },
-
-        child: Center(
+        appBar: AppBar(
+          title: Text(widget.title),
+        ),
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              CustomPaint(
-                painter:_SelectionPainter(
-                  color:Colors.blue,
-                  rects: _selectionRects,
-                  fill:true
-                )
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [flow2, flow3, flow4]
+                    .map((e) => ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            flow = e;
+                          });
+                        },
+                        child: Text(e)))
+                    .toList(),
+              ),
+              Text(
+                flow,
+                style: const TextStyle(fontSize: 30),
+              ),
+              Row(
+                children: [
+                  ElevatedButton(
+                      onPressed: _copyFromSelector, child: const Text('Copy'))
+                ],
               ),
               Padding(
-                padding: EdgeInsets.all(10),
-                child: Text(
-                  contentText,
-                  style:TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  key: textKey,
-                ),
-              ),
-
+                padding: const EdgeInsets.all(10),
+                child: getSelector(flow),
+                //  SelectableText(
+                //   demoContent,
+                // ),
+              )
             ],
           ),
-        ),
-      ) // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        ) // This trailing comma makes auto-formatting nicer for build methods.
+        );
+  }
+
+  Widget getSelector(String flow) {
+    switch (flow) {
+      case flow2:
+        return selector2;
+      case flow3:
+        return selector3;
+      case flow4:
+        return selector4;
+    }
+    return selector2;
+  }
+
+  void _copyFromSelector() {
+    Clipboard.setData(ClipboardData(text: selector3.allSelections()));
   }
 }
 
