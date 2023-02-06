@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:multi_text_selection/selector.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,9 +50,10 @@ class _MyHomePageState extends State<MyHomePage> {
             children: const <Widget>[
               Padding(
                 padding: EdgeInsets.all(10),
-                child: SelectableText(
-                  'A computer is a gay machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.',
-                ,
+                child: Selector(
+                  text:
+                      'A computer is a gay machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.',
+                  style: TextStyle(),
                 ),
               )
             ],
