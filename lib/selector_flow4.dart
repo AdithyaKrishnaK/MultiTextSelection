@@ -1,23 +1,23 @@
 import 'dart:developer';
-import 'dart:math' as dart_math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:multi_text_selection/utils.dart';
 
-class Selector extends StatefulWidget {
+// ignore: must_be_immutable
+class SelectorFlow4 extends StatefulWidget {
   late Function allSelections;
   final String text;
   final TextStyle style;
-  Selector({Key? key, required this.text, required this.style})
+  SelectorFlow4({Key? key, required this.text, required this.style})
       : super(key: key);
 
   @override
-  State<Selector> createState() => _SelectorState();
+  State<SelectorFlow4> createState() => _SelectorFlow2State();
 }
 
-class _SelectorState extends State<Selector> {
+class _SelectorFlow2State extends State<SelectorFlow4> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
@@ -27,8 +27,8 @@ class _SelectorState extends State<Selector> {
   int editingSelectionIndex = 0;
   SelectionComponents? editingSelection;
   late bool isEditingBaseCaret;
-  static const emphasisFactorWidth = 2;
-  static const emphasisFactorHeight = 1.5;
+  // static const emphasisFactorWidth = 2;
+  // static const emphasisFactorHeight = 1.5;
   RenderParagraph get _renderParagraph =>
       (_textKey.currentContext?.findRenderObject() as RenderParagraph);
   void _updateAllTextRects() {
@@ -147,8 +147,6 @@ class _SelectorState extends State<Selector> {
     return null;
   }
 
-  void _onHorizontalStartForBaseCaret(DragStartDetails details) {}
-
   void _onLongPressStart(LongPressStartDetails details) {
     if (isEditingSelection) {
       return;
@@ -226,47 +224,47 @@ class _SelectorState extends State<Selector> {
     // _unemphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
   }
 
-  void _emphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
-    late Rect oldRect;
-    if (isBaseCaret) {
-      oldRect = selections[editingSelectionIndex].baseCaret;
-    } else {
-      oldRect = selections[editingSelectionIndex].extentCaret;
-    }
-    Rect newRect = Rect.fromLTWH(
-        oldRect.left,
-        oldRect.top,
-        emphasisFactorWidth * oldRect.width,
-        emphasisFactorHeight * oldRect.height);
-    setState(() {
-      if (isBaseCaret) {
-        selections[editingSelectionIndex].baseCaret = newRect;
-      } else {
-        selections[editingSelectionIndex].extentCaret = newRect;
-      }
-    });
-  }
+  // void _emphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
+  //   late Rect oldRect;
+  //   if (isBaseCaret) {
+  //     oldRect = selections[editingSelectionIndex].baseCaret;
+  //   } else {
+  //     oldRect = selections[editingSelectionIndex].extentCaret;
+  //   }
+  //   Rect newRect = Rect.fromLTWH(
+  //       oldRect.left,
+  //       oldRect.top,
+  //       emphasisFactorWidth * oldRect.width,
+  //       emphasisFactorHeight * oldRect.height);
+  //   setState(() {
+  //     if (isBaseCaret) {
+  //       selections[editingSelectionIndex].baseCaret = newRect;
+  //     } else {
+  //       selections[editingSelectionIndex].extentCaret = newRect;
+  //     }
+  //   });
+  // }
 
-  void _unemphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
-    late Rect oldRect;
-    if (isBaseCaret) {
-      oldRect = selections[editingSelectionIndex].baseCaret;
-    } else {
-      oldRect = selections[editingSelectionIndex].extentCaret;
-    }
-    Rect newRect = Rect.fromLTWH(
-        oldRect.left,
-        oldRect.top,
-        emphasisFactorWidth / oldRect.width,
-        emphasisFactorHeight / oldRect.height);
-    setState(() {
-      if (isBaseCaret) {
-        selections[editingSelectionIndex].baseCaret = newRect;
-      } else {
-        selections[editingSelectionIndex].extentCaret = newRect;
-      }
-    });
-  }
+  // void _unemphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
+  //   late Rect oldRect;
+  //   if (isBaseCaret) {
+  //     oldRect = selections[editingSelectionIndex].baseCaret;
+  //   } else {
+  //     oldRect = selections[editingSelectionIndex].extentCaret;
+  //   }
+  //   Rect newRect = Rect.fromLTWH(
+  //       oldRect.left,
+  //       oldRect.top,
+  //       emphasisFactorWidth / oldRect.width,
+  //       emphasisFactorHeight / oldRect.height);
+  //   setState(() {
+  //     if (isBaseCaret) {
+  //       selections[editingSelectionIndex].baseCaret = newRect;
+  //     } else {
+  //       selections[editingSelectionIndex].extentCaret = newRect;
+  //     }
+  //   });
+  // }
 }
 
 class _SelectionPainter extends CustomPainter {
