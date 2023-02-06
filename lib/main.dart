@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:multi_text_selection/selector_flow2.dart';
 import 'package:multi_text_selection/selector_flow3.dart';
 import 'package:multi_text_selection/selector_flow4.dart';
-
 void main() {
   runApp(const MyApp());
 }
@@ -18,7 +17,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    routes: {
+      "/": (context) => longselect(),
+    }
     );
   }
 }
@@ -33,6 +34,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
   static const String flow2 = 'Flow 2';
   static const String flow3 = 'Flow 3';
   static const String flow4 = 'Flow 4';
@@ -111,5 +113,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _copyFromSelector() {
     Clipboard.setData(ClipboardData(text: selector3.allSelections()));
+  }
+}
+
+class _SelectionPainter extends CustomPainter {
+  _SelectionPainter({
+    required Color color,
+    required List<Rect> rects,
+    bool fill = true,
+  })  : _color = color,
+        _rects = rects,
+        _fill = fill,
+        _paint = Paint()..color = color;
+
+  final Color _color;
+  final bool _fill;
+  final List<Rect> _rects;
+  final Paint _paint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paint.style = _fill ? PaintingStyle.fill : PaintingStyle.stroke;
+    for (final rect in _rects) {
+      canvas.drawRect(rect, _paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SelectionPainter other) {
+    return true;
   }
 }
