@@ -1,6 +1,6 @@
 import 'dart:developer';
+import 'dart:math' as dart_math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -29,8 +29,14 @@ class _SelectorState extends State<Selector> {
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
   late TextSelection _textSelection;
-  late int _selectionBaseOffset;
-
+  // late int _selectionBaseOffset;
+  bool isEditingSelection = false;
+  int editingSelectionIndex = 0;
+  SelectionComponents? editingSelection;
+  late bool isEditingBaseCaret;
+  static const caretProximityThres = 5;
+  static const emphasisFactorWidth = 2;
+  static const emphasisFactorHeight = 1.5;
   RenderParagraph get _renderParagraph =>
       (_textKey.currentContext?.findRenderObject() as RenderParagraph);
   void _updateAllTextRects() {
@@ -43,9 +49,9 @@ class _SelectorState extends State<Selector> {
   }
 
   List<Rect> _computeRectsForSelection(TextSelection textSelection) {
-    if (_renderParagraph == null) {
-      return [];
-    }
+    // if (_renderParagraph == null) {
+    //   return [];
+    // }
     final textBoxes = _renderParagraph.getBoxesForSelection(textSelection);
     return textBoxes.map((e) => e.toRect()).toList();
   }
@@ -60,29 +66,17 @@ class _SelectorState extends State<Selector> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPressStart: _onLongPressStart,
-      onLongPressDown: _onLongPressDown,
-      onLongPressEnd: _onLongPressEnd,
+    return TextSelectionGestureDetector(
+      onSingleLongTapStart: _onLongPressStart,
+      onDragSelectionStart: _onDragSelectionStart,
+      onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
+      onSingleLongTapEnd: _onSingleLongTapEnd,
+      // onLongPressStart: _onLongPressStart,
+      // onLongPressDown: _onLongPressDown,
+      // onLongPressEnd: _onLongPressEnd,
       onDoubleTapDown: _onDoubleTapDown,
-      onTapDown: (TapDownDetails details) {
-        if (_renderParagraph == null) {
-          log('rp null');
-          return;
-        }
-        final alltextRects = _computeRectsForSelection(
-            TextSelection(baseOffset: 0, extentOffset: widget.text.length));
-        bool isOverText = false;
-        log(details.globalPosition.toString());
-        for (final rect in alltextRects) {
-          if (rect.contains(details.globalPosition)) {
-            isOverText = true;
-            // log(rect.bottom.toString());
-          } else {
-            // log('not in this rect');
-          }
-        }
-      },
+      onTapDown: _onTapDown,
+
       child: Stack(children: [
         ...selections
             .map((selection) => CustomPaint(
@@ -105,12 +99,10 @@ class _SelectorState extends State<Selector> {
         ...selections
             .map((selection) => GestureDetector(
                   onHorizontalDragStart: _onHorizontalStartForBaseCaret,
-                  onPanStart: (details) {
-                    log('message');
-                  },
-                  onLongPressStart: (details) {
-                    log('message');
-                  },
+                  // onPanStart: (details) {
+                  // },
+                  // onLongPressStart: (details) {
+                  // },
                   child: CustomPaint(
                     painter: _SelectionPainter(
                         color: Colors.blue,
@@ -132,17 +124,6 @@ class _SelectorState extends State<Selector> {
     );
   }
 
-  void _onLongPressStart(LongPressStartDetails details) {
-    if (_renderParagraph == null) {
-      log('rp null');
-      return;
-    }
-    _selectionBaseOffset =
-        _renderParagraph.getPositionForOffset(details.localPosition).offset;
-    _textSelection = _getSelectedWord(details.localPosition);
-    addNewSelection();
-  }
-
   TextSelection _getSelectedWord(Offset localPosition) {
     List<String> words = widget.text.split(' ');
     int _baseOffset = 0;
@@ -160,49 +141,40 @@ class _SelectorState extends State<Selector> {
     return TextSelection(baseOffset: _baseOffset, extentOffset: _extentOffset);
   }
 
-  void _onLongPressDown(LongPressDownDetails details) {}
+  List getCaretRectsAndOffsets(TextSelection selection) {
+    final caretExtentOffset =
+        _renderParagraph.getOffsetForCaret(selection.extent, Rect.zero);
+    final caretHeight =
+        1.5 * (_renderParagraph.getFullHeightForCaret(selection.extent)!);
+    final caretBaseOffset =
+        _renderParagraph.getOffsetForCaret(selection.base, Rect.zero);
+    return [
+      Rect.fromLTWH(caretBaseOffset.dx - 1, caretBaseOffset.dy, 2, caretHeight),
+      Rect.fromLTWH(
+          caretExtentOffset.dx - 1, caretExtentOffset.dy, 2, caretHeight),
+      selection.baseOffset,
+      selection.extentOffset
+    ];
+  }
 
-  void _onLongPressEnd(LongPressEndDetails details) {
-    // final selectionExtentOffset =
-    //     _renderParagraph.getPositionForOffset(details.localPosition).offset;
-    // _textSelection = _getSelectedWord(details.localPosition);
-    // _updateSelectionDisplay();
+  SelectionComponents getSelectionComponent(TextSelection textSelection) {
+    final selectionRects = _computeRectsForSelection(textSelection);
+    List caretOffsets = getCaretRectsAndOffsets(textSelection);
+    SelectionComponents selection = SelectionComponents(caretOffsets[0],
+        caretOffsets[1], caretOffsets[2], caretOffsets[3], selectionRects);
+    return selection;
   }
 
   void addNewSelection() {
-    final selectionRects = _computeRectsForSelection(_textSelection);
-
-    //compute caret pos, height
-    final caretExtentOffset =
-        _renderParagraph.getOffsetForCaret(_textSelection.extent, Rect.zero);
-    final caretHeight =
-        1.5 * (_renderParagraph.getFullHeightForCaret(_textSelection.extent)!);
-    final caretBaseOffset =
-        _renderParagraph.getOffsetForCaret(_textSelection.base, Rect.zero);
+    SelectionComponents selection = getSelectionComponent(_textSelection);
     setState(() {
-      selections.add(SelectionComponents(
-          Rect.fromLTWH(
-              caretBaseOffset.dx - 1, caretBaseOffset.dy, 2, caretHeight),
-          Rect.fromLTWH(
-              caretExtentOffset.dx - 1, caretExtentOffset.dy, 2, caretHeight),
-          _textSelection.baseOffset,
-          _textSelection.extentOffset,
-          selectionRects));
+      selections.add(selection);
     });
   }
 
-  void _onHorizontalStartForBaseCaret(DragStartDetails details) {
-    log('message');
-  }
-
-  void _onDoubleTapDown(TapDownDetails details) {
-    log('double tap down received.');
-    removeTappedSelection(details);
-  }
-
   void removeTappedSelection(TapDownDetails details) {
-    _selectionBaseOffset =
-        _renderParagraph.getPositionForOffset(details.localPosition).offset;
+    // _selectionBaseOffset =
+    //     _renderParagraph.getPositionForOffset(details.localPosition).offset;
     SelectionComponents? sel = _getSelection(details.localPosition);
     if (sel != null) {
       setState(() {
@@ -214,14 +186,168 @@ class _SelectorState extends State<Selector> {
   SelectionComponents? _getSelection(Offset localPosition) {
     int fingerPoint =
         _renderParagraph.getPositionForOffset(localPosition).offset;
-    log(fingerPoint.toString());
+    log('tap at: ' + fingerPoint.toString());
     for (final selection in selections) {
+      log('selection vals: ' +
+          selection.baseOffset.toString() +
+          ', ' +
+          selection.extentOffset.toString());
+      log('caret left vals: ' +
+          selection.baseCaret.left.toString() +
+          ', ' +
+          selection.extentCaret.left.toString());
       if (selection.baseOffset <= fingerPoint &&
           fingerPoint <= selection.extentOffset) {
         return selection;
       }
     }
     return null;
+  }
+
+  void _onHorizontalStartForBaseCaret(DragStartDetails details) {}
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (isEditingSelection) {
+      return;
+    }
+    _textSelection = _getSelectedWord(details.localPosition);
+    for (final selection in selections) {
+      if (selection.baseOffset == _textSelection.baseOffset &&
+          selection.extentOffset == _textSelection.extentOffset) {
+        return;
+      }
+    }
+    addNewSelection();
+  }
+
+  void _onDoubleTapDown(TapDownDetails details) {
+    log('double tap down received.');
+    removeTappedSelection(details);
+  }
+
+  void _onDragSelectionStart(DragStartDetails details) {
+    log('on drag selection start');
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    if (selections.isEmpty) {
+      return;
+    }
+
+    List indexbasecaret = getCloseSelectionIndex(details.localPosition);
+    if (indexbasecaret[0] != -1) {
+      isEditingSelection = true;
+      editingSelectionIndex = indexbasecaret[0];
+      isEditingBaseCaret = indexbasecaret[1];
+      editingSelection = selections[editingSelectionIndex];
+    } else {
+      isEditingSelection = false;
+    }
+    log(indexbasecaret.toString());
+  }
+
+  void _onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!isEditingSelection) {
+      return;
+    }
+    _emphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
+    int fingerPoint =
+        _renderParagraph.getPositionForOffset(details.localPosition).offset;
+    if (editingSelection == null) {
+      return;
+    }
+    late TextSelection newTextSelection;
+
+    if (isEditingBaseCaret) {
+      newTextSelection = TextSelection(
+          baseOffset:
+              dart_math.min(fingerPoint, editingSelection!.extentOffset),
+          extentOffset:
+              dart_math.max(fingerPoint, editingSelection!.extentOffset));
+    } else {
+      newTextSelection = TextSelection(
+          baseOffset: dart_math.min(editingSelection!.baseOffset, fingerPoint),
+          extentOffset:
+              dart_math.max(editingSelection!.baseOffset, fingerPoint));
+    }
+    log(editingSelectionIndex.toString());
+    setState(() {
+      selections[editingSelectionIndex] =
+          getSelectionComponent(newTextSelection);
+    });
+  }
+
+  void _onSingleLongTapEnd(LongPressEndDetails details) {
+    if (editingSelection == null) {
+      return;
+    }
+
+    _unemphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
+  }
+
+  List getCloseSelectionIndex(Offset localPosition) {
+    int fingerPoint =
+        _renderParagraph.getPositionForOffset(localPosition).offset;
+    log('fingerpoint: ' + fingerPoint.toString());
+    int selectionIndex = -1;
+    bool editingBaseCaret = false;
+    for (final sel in selections) {
+      log('selection vals: ' +
+          sel.baseOffset.toString() +
+          ', ' +
+          sel.extentOffset.toString());
+      if ((sel.baseOffset - fingerPoint).abs() < caretProximityThres) {
+        selectionIndex = selections.indexOf(sel);
+        editingBaseCaret = true;
+        log('close to base caret');
+      } else if ((sel.extentOffset - fingerPoint).abs() < caretProximityThres) {
+        selectionIndex = selections.indexOf(sel);
+        log('close to extent caret');
+      }
+    }
+    return [selectionIndex, editingBaseCaret];
+  }
+
+  void _emphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
+    late Rect oldRect;
+    if (isBaseCaret) {
+      oldRect = selections[editingSelectionIndex].baseCaret;
+    } else {
+      oldRect = selections[editingSelectionIndex].extentCaret;
+    }
+    Rect newRect = Rect.fromLTWH(
+        oldRect.left,
+        oldRect.top,
+        emphasisFactorWidth * oldRect.width,
+        emphasisFactorHeight * oldRect.height);
+    setState(() {
+      if (isBaseCaret) {
+        selections[editingSelectionIndex].baseCaret = newRect;
+      } else {
+        selections[editingSelectionIndex].extentCaret = newRect;
+      }
+    });
+  }
+
+  void _unemphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
+    late Rect oldRect;
+    if (isBaseCaret) {
+      oldRect = selections[editingSelectionIndex].baseCaret;
+    } else {
+      oldRect = selections[editingSelectionIndex].extentCaret;
+    }
+    Rect newRect = Rect.fromLTWH(
+        oldRect.left,
+        oldRect.top,
+        emphasisFactorWidth / oldRect.width,
+        emphasisFactorHeight / oldRect.height);
+    setState(() {
+      if (isBaseCaret) {
+        selections[editingSelectionIndex].baseCaret = newRect;
+      } else {
+        selections[editingSelectionIndex].extentCaret = newRect;
+      }
+    });
   }
 }
 
@@ -230,12 +356,10 @@ class _SelectionPainter extends CustomPainter {
     required Color color,
     required List<Rect> rects,
     bool fill = true,
-  })  : _color = color,
-        _rects = rects,
+  })  : _rects = rects,
         _fill = fill,
         _paint = Paint()..color = color;
 
-  final Color _color;
   final bool _fill;
   final List<Rect> _rects;
   final Paint _paint;
