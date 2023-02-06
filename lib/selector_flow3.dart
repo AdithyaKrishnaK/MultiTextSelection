@@ -14,19 +14,22 @@ class SelectorFlow3 extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<SelectorFlow3> createState() => _SelectorFlow2State();
+  State<SelectorFlow3> createState() => _SelectorFlow3State();
 }
 
-class _SelectorFlow2State extends State<SelectorFlow3> {
+class _SelectorFlow3State extends State<SelectorFlow3> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
+  static const thirdTapTimeout = 1000;
   bool isEditingSelection = false;
   int editingSelectionIndex = 0;
   SelectionComponents? editingSelection;
   late bool isEditingBaseCaret;
+
+  bool awaitingThirdTap = false;
   // static const emphasisFactorWidth = 2;
   // static const emphasisFactorHeight = 1.5;
   RenderParagraph get _renderParagraph =>
@@ -68,14 +71,14 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
       child: Stack(children: [
         ...selections
             .map((selection) => CustomPaint(
-                  painter: _SelectionPainter(
+                  painter: SelectionPainter(
                       color: Colors.green[200]!,
                       rects: selection.selectionRects,
                       fill: true),
                 ))
             .toList(),
         CustomPaint(
-          painter: _SelectionPainter(
+          painter: SelectionPainter(
               color: Colors.blue, rects: _textRects, fill: false),
         ),
         Text(
@@ -87,7 +90,7 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
         ...selections
             .map(
               (selection) => CustomPaint(
-                painter: _SelectionPainter(
+                painter: SelectionPainter(
                     color: Colors.blue,
                     rects: [selection.baseCaret],
                     fill: true),
@@ -97,7 +100,7 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
         //extent carets
         ...selections
             .map((selection) => CustomPaint(
-                  painter: _SelectionPainter(
+                  painter: SelectionPainter(
                       color: Colors.blue,
                       rects: [selection.extentCaret],
                       fill: true),
@@ -110,15 +113,23 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
   void addNewSelection() {
     SelectionComponents selection =
         Utils.getSelectionComponent(_textSelection, _renderParagraph);
+    selections.add(selection);
+    List<SelectionComponents> newsels =
+        Utils.collapseSelections(selections, _renderParagraph);
     setState(() {
-      selections.add(selection);
+      selections
+        ..clear()
+        ..addAll(newsels);
+      //flow 3 specific code:
+      isEditingSelection = true;
+      editingSelectionIndex = selections.length - 1;
     });
   }
 
-  void removeTappedSelection(TapDownDetails details) {
+  void removeTappedSelection(Offset localPosition) {
     // _selectionBaseOffset =
     //     _renderParagraph.getPositionForOffset(details.localPosition).offset;
-    SelectionComponents? sel = _getSelection(details.localPosition);
+    SelectionComponents? sel = _getSelection(localPosition);
     if (sel != null) {
       setState(() {
         selections.remove(sel);
@@ -148,6 +159,13 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
   }
 
   void _onLongPressStart(LongPressStartDetails details) {
+    if (!isEditingSelection) {
+      removeTappedSelection(details.localPosition);
+    }
+  }
+
+  void _onDoubleTapDown(TapDownDetails details) {
+    log('double tap down received.');
     if (isEditingSelection) {
       return;
     }
@@ -160,11 +178,11 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
       }
     }
     addNewSelection();
-  }
-
-  void _onDoubleTapDown(TapDownDetails details) {
-    log('double tap down received.');
-    removeTappedSelection(details);
+    awaitingThirdTap = true;
+    Future.delayed(const Duration(milliseconds: thirdTapTimeout), () {
+      awaitingThirdTap = false;
+      isEditingSelection = false;
+    });
   }
 
   void _onDragSelectionStart(DragStartDetails details) {
@@ -175,10 +193,36 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
     if (selections.isEmpty) {
       return;
     }
+    log('awaiting third tap: ' + awaitingThirdTap.toString());
+    if (awaitingThirdTap) {
+      int fingerPoint =
+          _renderParagraph.getPositionForOffset(details.localPosition).offset;
 
+      if (fingerPoint < selections[editingSelectionIndex].baseOffset) {
+        selections[editingSelectionIndex] = Utils.getSelectionComponent(
+            Utils.getNewTextSelection(
+                selections[editingSelectionIndex], fingerPoint, true),
+            _renderParagraph);
+      } else if (fingerPoint > selections[editingSelectionIndex].extentOffset) {
+        selections[editingSelectionIndex] = Utils.getSelectionComponent(
+            Utils.getNewTextSelection(
+                selections[editingSelectionIndex], fingerPoint, false),
+            _renderParagraph);
+      }
+      List<SelectionComponents> newsels =
+          Utils.collapseSelections(selections, _renderParagraph);
+      setState(() {
+        selections
+          ..clear()
+          ..addAll(newsels);
+      });
+      awaitingThirdTap = false;
+      return;
+    }
     List indexbasecaret = Utils.getCloseSelectionIndex(
         details.localPosition, _renderParagraph, selections);
     if (indexbasecaret[0] != -1) {
+      log('is editing selection = true');
       isEditingSelection = true;
       editingSelectionIndex = indexbasecaret[0];
       isEditingBaseCaret = indexbasecaret[1];
@@ -265,31 +309,4 @@ class _SelectorFlow2State extends State<SelectorFlow3> {
   //     }
   //   });
   // }
-}
-
-class _SelectionPainter extends CustomPainter {
-  _SelectionPainter({
-    required Color color,
-    required List<Rect> rects,
-    bool fill = true,
-  })  : _rects = rects,
-        _fill = fill,
-        _paint = Paint()..color = color;
-
-  final bool _fill;
-  final List<Rect> _rects;
-  final Paint _paint;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    _paint.style = _fill ? PaintingStyle.fill : PaintingStyle.stroke;
-    for (final rect in _rects) {
-      canvas.drawRect(rect, _paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SelectionPainter other) {
-    return true;
-  }
 }

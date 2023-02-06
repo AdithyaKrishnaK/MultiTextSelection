@@ -14,10 +14,10 @@ class SelectorFlow4 extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<SelectorFlow4> createState() => _SelectorFlow2State();
+  State<SelectorFlow4> createState() => _SelectorFlow4State();
 }
 
-class _SelectorFlow2State extends State<SelectorFlow4> {
+class _SelectorFlow4State extends State<SelectorFlow4> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
@@ -68,14 +68,14 @@ class _SelectorFlow2State extends State<SelectorFlow4> {
       child: Stack(children: [
         ...selections
             .map((selection) => CustomPaint(
-                  painter: _SelectionPainter(
+                  painter: SelectionPainter(
                       color: Colors.green[200]!,
                       rects: selection.selectionRects,
                       fill: true),
                 ))
             .toList(),
         CustomPaint(
-          painter: _SelectionPainter(
+          painter: SelectionPainter(
               color: Colors.blue, rects: _textRects, fill: false),
         ),
         Text(
@@ -87,7 +87,7 @@ class _SelectorFlow2State extends State<SelectorFlow4> {
         ...selections
             .map(
               (selection) => CustomPaint(
-                painter: _SelectionPainter(
+                painter: SelectionPainter(
                     color: Colors.blue,
                     rects: [selection.baseCaret],
                     fill: true),
@@ -97,7 +97,7 @@ class _SelectorFlow2State extends State<SelectorFlow4> {
         //extent carets
         ...selections
             .map((selection) => CustomPaint(
-                  painter: _SelectionPainter(
+                  painter: SelectionPainter(
                       color: Colors.blue,
                       rects: [selection.extentCaret],
                       fill: true),
@@ -265,31 +265,4 @@ class _SelectorFlow2State extends State<SelectorFlow4> {
   //     }
   //   });
   // }
-}
-
-class _SelectionPainter extends CustomPainter {
-  _SelectionPainter({
-    required Color color,
-    required List<Rect> rects,
-    bool fill = true,
-  })  : _rects = rects,
-        _fill = fill,
-        _paint = Paint()..color = color;
-
-  final bool _fill;
-  final List<Rect> _rects;
-  final Paint _paint;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    _paint.style = _fill ? PaintingStyle.fill : PaintingStyle.stroke;
-    for (final rect in _rects) {
-      canvas.drawRect(rect, _paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SelectionPainter other) {
-    return true;
-  }
 }

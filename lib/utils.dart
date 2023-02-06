@@ -145,3 +145,30 @@ class Utils {
     return sels;
   }
 }
+
+class SelectionPainter extends CustomPainter {
+  SelectionPainter({
+    required Color color,
+    required List<Rect> rects,
+    bool fill = true,
+  })  : _rects = rects,
+        _fill = fill,
+        _paint = Paint()..color = color;
+
+  final bool _fill;
+  final List<Rect> _rects;
+  final Paint _paint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paint.style = _fill ? PaintingStyle.fill : PaintingStyle.stroke;
+    for (final rect in _rects) {
+      canvas.drawRect(rect, _paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(SelectionPainter oldDelegate) {
+    return true;
+  }
+}
