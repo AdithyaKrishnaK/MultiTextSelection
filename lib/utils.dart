@@ -56,6 +56,7 @@ class SelectionActionStack {
   }
 
   printStackLens() {
+    log('stack element lengths: ');
     for (final selcomps in _selectionActions) {
       log(selcomps.selectionComponents.length.toString());
     }

@@ -265,7 +265,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
       selections
         ..clear()
         ..addAll(newsels);
-      actionStack.push(SelectionAction(selections, false));
+      actionStack.push(SelectionAction(newsels, false));
     });
   }
 }

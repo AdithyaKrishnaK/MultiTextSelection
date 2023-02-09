@@ -167,7 +167,8 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
       //flow 3 specific code:
       isEditingSelection = true;
       editingSelectionIndex = selections.length - 1;
-      if (addToStack) actionStack.push(SelectionAction(selections, false));
+      actionStack.push(SelectionAction(newsels, false));
+      actionStack.printStackLens();
     });
   }
 
@@ -179,6 +180,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
       setState(() {
         selections.remove(sel);
         actionStack.push(SelectionAction(selections, true));
+        actionStack.printStackLens();
       });
     }
   }
@@ -262,6 +264,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
           ..clear()
           ..addAll(newsels);
         actionStack.push(SelectionAction(selections, false));
+        actionStack.printStackLens();
       });
       awaitingThirdTap = false;
       return;
