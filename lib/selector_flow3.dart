@@ -314,6 +314,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
       selections
         ..clear()
         ..addAll(newsels);
+      actionStack.push(SelectionAction(newsels, false));
     });
     // _unemphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
   }
