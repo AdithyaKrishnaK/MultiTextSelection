@@ -12,6 +12,54 @@ class SelectionComponents {
       this.extentOffset, this.selectionRects);
 }
 
+class SelectionAction {
+  SelectionComponents selectionComponents;
+  bool isDelete;
+  SelectionAction(this.selectionComponents,this.isDelete);
+
+}
+
+class SelectionActionStack{
+  List<SelectionAction> _selectionActions = [];
+  int _index = -1;
+  SelectionActionStack();
+  void push(SelectionAction selectionAction){
+    cutStack();
+    _selectionActions.add(selectionAction);
+    _index+=1;
+  }
+
+  SelectionAction undo(){
+    log("Undo $_index");
+    _index-=1;
+    return _selectionActions[_index+1];
+  }
+
+  SelectionAction redo(){
+    log("Redo ${_index+1}");
+    _index+=1;
+    return _selectionActions[_index];
+  }
+
+  bool anymoreUndo(){
+    return _index>=0;
+  }
+  bool anymoreRedo(){
+    return _index<_selectionActions.length-1;
+  }
+
+  void cutStack(){
+    List<SelectionAction> _newSelectionActions = [];
+    for(int i=0;i<=_index;i++){
+      _newSelectionActions.add(_selectionActions[i]);
+    }
+    _selectionActions = _newSelectionActions;
+  }
+  void clear(){
+    _selectionActions = [];
+  }
+}
+
 class Utils {
   static const caretProximityThres = 5;
   static List getCaretRectsAndOffsets(

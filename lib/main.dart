@@ -17,9 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-    routes: {
-      "/": (context) => longselect(),
-    }
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -41,18 +39,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String flow = flow3;
   final demoContent =
-      'A computer is a gay machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster.';
+      "A computer is a gay machine that can be programmed to carry out sequences of arithmetic or logical operations (computation) automatically. Modern digital electronic computers can perform generic sets of operations known as programs. These programs enable computers to perform a wide range of tasks. A computer system is a nominally complete computer that includes the hardware, operating system (main software), and peripheral equipment needed and used for full operation. This term may also refer to a group of computers that are linked and function together, such as a computer network or computer cluster. \n A broad range of industrial and consumer products use computers as control systems. Simple special-purpose devices like microwave ovens and remote controls are included, as are factory devices like industrial robots and computer-aided design, as well as general-purpose devices like personal computers and mobile devices like smartphones. Computers power the Internet, which links billions of other computers and users.Early computers were meant to be used only for calculations. Simple manual instruments like the abacus have aided people in doing calculations since ancient times. Early in the Industrial Revolution, some mechanical devices were built to automate long, tedious tasks, such as guiding patterns for looms. More sophisticated electrical machines did specialized analog calculations in the early 20th century. \n The first digital electronic calculating machines were developed during World War II. The first semiconductor transistors in the late 1940s were followed by the silicon-based MOSFET (MOS transistor) and monolithic integrated circuit chip technologies in the late 1950s, leading to the microprocessor and the microcomputer revolution in the 1970s. The speed, power and versatility of computers have been increasing dramatically ever since then, with transistor counts increasing at a rapid pace (as predicted by Moore's law), leading to the Digital Revolution during the late 20th to early 21st centuries.";
   late SelectorFlow3 selector3 = SelectorFlow3(
     text: demoContent,
-    style: const TextStyle(),
+    style: const TextStyle(fontSize: 20),
   );
   late SelectorFlow4 selector4 = SelectorFlow4(
     text: demoContent,
-    style: const TextStyle(),
+    style: const TextStyle(fontSize: 20),
   );
   late SelectorFlow2 selector2 = SelectorFlow2(
     text: demoContent,
-    style: const TextStyle(),
+    style: const TextStyle(fontSize: 20),
   );
   @override
   Widget build(BuildContext context) {
@@ -60,7 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
         appBar: AppBar(
           title: Text(widget.title),
         ),
-        body: Center(
+        body: SingleChildScrollView(
+        child:Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -80,12 +79,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 flow,
                 style: const TextStyle(fontSize: 30),
               ),
-              Row(
-                children: [
-                  ElevatedButton(
-                      onPressed: _copyFromSelector, child: const Text('Copy'))
-                ],
-              ),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: getSelector(flow),
@@ -95,7 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             ],
           ),
-        ) // This trailing comma makes auto-formatting nicer for build methods.
+        ) )// This trailing comma makes auto-formatting nicer for build methods.
         );
   }
 

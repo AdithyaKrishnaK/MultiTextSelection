@@ -21,6 +21,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
+  SelectionActionStack actionStack = SelectionActionStack();
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
   bool isEditingSelection = false;
@@ -43,7 +44,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
       _updateAllTextRects();
     });
     widget.allSelections = () {
@@ -58,7 +59,55 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
 
   @override
   Widget build(BuildContext context) {
-    return TextSelectionGestureDetector(
+    return Column(
+      children: [
+      Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        ElevatedButton(
+          child: Text("Undo"),
+
+          onPressed: actionStack.anymoreUndo() ? (){
+            SelectionAction lastAction = actionStack.undo();
+            if(lastAction.isDelete){
+              setState(() {
+                selections.add(lastAction.selectionComponents);
+              });
+              log("Adding the selection, ${selections.length}");
+            }else{
+              setState(() {
+                selections.remove(lastAction.selectionComponents);
+              });
+              log("Removing the selection, ${selections.length}");
+            }
+          }:null,
+        ),
+        ElevatedButton(
+          child: Text("Redo"),
+
+          onPressed: actionStack.anymoreRedo() ? (){
+            SelectionAction lastAction = actionStack.redo();
+            if(!lastAction.isDelete){
+              setState(() {
+                selections.add(lastAction.selectionComponents);
+              });
+              log("Adding the selection, ${selections.length}");
+            }else{
+              setState(() {
+                selections.remove(lastAction.selectionComponents);
+              });
+              log("removing the selection, ${selections.length}");
+            }
+          }:null,
+        ),
+        ElevatedButton(
+            onPressed: (){
+              Clipboard.setData(ClipboardData(text: widget.allSelections()));
+            }, child: const Text('Copy'))
+      ],
+
+    ),
+      TextSelectionGestureDetector(
       onSingleLongTapStart: _onLongPressStart,
       onDragSelectionStart: _onDragSelectionStart,
       onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
@@ -74,14 +123,12 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
                       fill: true),
                 ))
             .toList(),
-        CustomPaint(
-          painter: SelectionPainter(
-              color: Colors.blue, rects: _textRects, fill: false),
-        ),
-        Text(
-          widget.text,
-          key: _textKey,
-          style: widget.style,
+        SingleChildScrollView(
+          child: Text(
+            widget.text,
+            key: _textKey,
+            style: widget.style,
+          ),
         ),
         //base extents
         ...selections
@@ -104,7 +151,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
                 ))
             .toList(),
       ]),
-    );
+    )]);
   }
 
   void addNewSelection() {
@@ -112,6 +159,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
         Utils.getSelectionComponent(_textSelection, _renderParagraph);
     setState(() {
       selections.add(selection);
+      actionStack.push(SelectionAction(selection, false));
     });
   }
 
@@ -122,6 +170,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
     if (sel != null) {
       setState(() {
         selections.remove(sel);
+        actionStack.push(SelectionAction(sel, true));
       });
     }
   }
@@ -221,48 +270,6 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
         ..clear()
         ..addAll(newsels);
     });
-    // _unemphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
   }
 
-  // void _emphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
-  //   late Rect oldRect;
-  //   if (isBaseCaret) {
-  //     oldRect = selections[editingSelectionIndex].baseCaret;
-  //   } else {
-  //     oldRect = selections[editingSelectionIndex].extentCaret;
-  //   }
-  //   Rect newRect = Rect.fromLTWH(
-  //       oldRect.left,
-  //       oldRect.top,
-  //       emphasisFactorWidth * oldRect.width,
-  //       emphasisFactorHeight * oldRect.height);
-  //   setState(() {
-  //     if (isBaseCaret) {
-  //       selections[editingSelectionIndex].baseCaret = newRect;
-  //     } else {
-  //       selections[editingSelectionIndex].extentCaret = newRect;
-  //     }
-  //   });
-  // }
-
-  // void _unemphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {
-  //   late Rect oldRect;
-  //   if (isBaseCaret) {
-  //     oldRect = selections[editingSelectionIndex].baseCaret;
-  //   } else {
-  //     oldRect = selections[editingSelectionIndex].extentCaret;
-  //   }
-  //   Rect newRect = Rect.fromLTWH(
-  //       oldRect.left,
-  //       oldRect.top,
-  //       emphasisFactorWidth / oldRect.width,
-  //       emphasisFactorHeight / oldRect.height);
-  //   setState(() {
-  //     if (isBaseCaret) {
-  //       selections[editingSelectionIndex].baseCaret = newRect;
-  //     } else {
-  //       selections[editingSelectionIndex].extentCaret = newRect;
-  //     }
-  //   });
-  // }
 }

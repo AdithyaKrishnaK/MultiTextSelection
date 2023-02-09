@@ -21,6 +21,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
+  SelectionActionStack actionStack = SelectionActionStack();
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
   static const thirdTapTimeout = 1000;
@@ -46,7 +47,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
       _updateAllTextRects();
     });
     widget.allSelections = () {
@@ -61,7 +62,55 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   @override
   Widget build(BuildContext context) {
-    return TextSelectionGestureDetector(
+    return Column(
+      children: [
+      Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        ElevatedButton(
+          child: Text("Undo"),
+
+          onPressed: actionStack.anymoreUndo() ? (){
+            SelectionAction lastAction = actionStack.undo();
+            if(lastAction.isDelete){
+              setState(() {
+                addNewSelection(addToStack: false);
+              });
+              log("Adding the selection, ${selections.length}");
+            }else{
+              setState(() {
+                selections.remove(lastAction.selectionComponents);
+              });
+              log("Removing the selection, ${selections.length}");
+            }
+          }:null,
+        ),
+        ElevatedButton(
+          child: Text("Redo"),
+
+          onPressed: actionStack.anymoreRedo() ? (){
+            SelectionAction lastAction = actionStack.redo();
+            if(!lastAction.isDelete){
+              setState(() {
+                addNewSelection(addToStack: false);
+              });
+              log("Adding the selection, ${selections.length}");
+            }else{
+              setState(() {
+                selections.remove(lastAction.selectionComponents);
+              });
+              log("removing the selection, ${selections.length}");
+            }
+          }:null,
+        ),
+        ElevatedButton(
+            onPressed: (){
+              Clipboard.setData(ClipboardData(text: widget.allSelections()));
+            }, child: const Text('Copy'))
+      ],
+
+    ),
+      TextSelectionGestureDetector(
       onSingleLongTapStart: _onLongPressStart,
       onDragSelectionStart: _onDragSelectionStart,
       onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
@@ -77,14 +126,12 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
                       fill: true),
                 ))
             .toList(),
-        CustomPaint(
-          painter: SelectionPainter(
-              color: Colors.blue, rects: _textRects, fill: false),
-        ),
-        Text(
-          widget.text,
-          key: _textKey,
-          style: widget.style,
+        SingleChildScrollView(
+          child: Text(
+            widget.text,
+            key: _textKey,
+            style: widget.style,
+          ),
         ),
         //base extents
         ...selections
@@ -107,10 +154,10 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
                 ))
             .toList(),
       ]),
-    );
+    )]);
   }
 
-  void addNewSelection() {
+  void addNewSelection({addToStack=true}) {
     SelectionComponents selection =
         Utils.getSelectionComponent(_textSelection, _renderParagraph);
     selections.add(selection);
@@ -123,6 +170,8 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
       //flow 3 specific code:
       isEditingSelection = true;
       editingSelectionIndex = selections.length - 1;
+      if(addToStack)
+        actionStack.push(SelectionAction(selection, false));
     });
   }
 
@@ -133,6 +182,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
     if (sel != null) {
       setState(() {
         selections.remove(sel);
+        actionStack.push(SelectionAction(sel, true));
       });
     }
   }
