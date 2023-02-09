@@ -103,43 +103,49 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
         onSingleLongTapEnd: _onSingleLongTapEnd,
         onDoubleTapDown: _onDoubleTapDown,
         onTapDown: _onTapDown,
-        child: Stack(children: [
-          ...selections
-              .map((selection) => CustomPaint(
-                    painter: SelectionPainter(
-                        color: Colors.green[200]!,
-                        rects: selection.selectionRects,
-                        fill: true),
-                  ))
-              .toList(),
-          SingleChildScrollView(
-            child: Text(
-              widget.text,
-              key: _textKey,
-              style: widget.style,
+        child: GestureDetector(
+          onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
+          onHorizontalDragEnd: _onSingleLongTapEnd,
+          onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
+          onVerticalDragEnd: _onSingleLongTapEnd,
+          child: Stack(children: [
+            ...selections
+                .map((selection) => CustomPaint(
+                      painter: SelectionPainter(
+                          color: Colors.green[200]!,
+                          rects: selection.selectionRects,
+                          fill: true),
+                    ))
+                .toList(),
+            SingleChildScrollView(
+              child: Text(
+                widget.text,
+                key: _textKey,
+                style: widget.style,
+              ),
             ),
-          ),
-          //base extents
-          ...selections
-              .map(
-                (selection) => CustomPaint(
-                  painter: SelectionPainter(
-                      color: Colors.blue,
-                      rects: [selection.baseCaret],
-                      fill: true),
-                ),
-              )
-              .toList(),
-          //extent carets
-          ...selections
-              .map((selection) => CustomPaint(
+            //base extents
+            ...selections
+                .map(
+                  (selection) => CustomPaint(
                     painter: SelectionPainter(
                         color: Colors.blue,
-                        rects: [selection.extentCaret],
+                        rects: [selection.baseCaret],
                         fill: true),
-                  ))
-              .toList(),
-        ]),
+                  ),
+                )
+                .toList(),
+            //extent carets
+            ...selections
+                .map((selection) => CustomPaint(
+                      painter: SelectionPainter(
+                          color: Colors.blue,
+                          rects: [selection.extentCaret],
+                          fill: true),
+                    ))
+                .toList(),
+          ]),
+        ),
       )
     ]);
   }
@@ -228,7 +234,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
     log(indexbasecaret.toString());
   }
 
-  void _onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
+  void _onSingleLongTapMoveUpdate(var details) {
     if (!isEditingSelection) {
       return;
     }
@@ -247,7 +253,7 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
     });
   }
 
-  void _onSingleLongTapEnd(LongPressEndDetails details) {
+  void _onSingleLongTapEnd(var details) {
     if (!isEditingSelection) {
       return;
     }
