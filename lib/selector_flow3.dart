@@ -47,7 +47,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   @override
   void initState() {
-    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _updateAllTextRects();
     });
     widget.allSelections = () {
@@ -62,102 +62,93 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
+    return Column(children: [
       Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        ElevatedButton(
-          child: Text("Undo"),
-
-          onPressed: actionStack.anymoreUndo() ? (){
-            SelectionAction lastAction = actionStack.undo();
-            if(lastAction.isDelete){
-              setState(() {
-                addNewSelection(addToStack: false);
-              });
-              log("Adding the selection, ${selections.length}");
-            }else{
-              setState(() {
-                selections.remove(lastAction.selectionComponents);
-              });
-              log("Removing the selection, ${selections.length}");
-            }
-          }:null,
-        ),
-        ElevatedButton(
-          child: Text("Redo"),
-
-          onPressed: actionStack.anymoreRedo() ? (){
-            SelectionAction lastAction = actionStack.redo();
-            if(!lastAction.isDelete){
-              setState(() {
-                addNewSelection(addToStack: false);
-              });
-              log("Adding the selection, ${selections.length}");
-            }else{
-              setState(() {
-                selections.remove(lastAction.selectionComponents);
-              });
-              log("removing the selection, ${selections.length}");
-            }
-          }:null,
-        ),
-        ElevatedButton(
-            onPressed: (){
-              Clipboard.setData(ClipboardData(text: widget.allSelections()));
-            }, child: const Text('Copy'))
-      ],
-
-    ),
-      TextSelectionGestureDetector(
-      onSingleLongTapStart: _onLongPressStart,
-      onDragSelectionStart: _onDragSelectionStart,
-      onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
-      onSingleLongTapEnd: _onSingleLongTapEnd,
-      onDoubleTapDown: _onDoubleTapDown,
-      onTapDown: _onTapDown,
-      child: Stack(children: [
-        ...selections
-            .map((selection) => CustomPaint(
-                  painter: SelectionPainter(
-                      color: Colors.green[200]!,
-                      rects: selection.selectionRects,
-                      fill: true),
-                ))
-            .toList(),
-        SingleChildScrollView(
-          child: Text(
-            widget.text,
-            key: _textKey,
-            style: widget.style,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          ElevatedButton(
+            child: const Text("Undo"),
+            onPressed: actionStack.anymoreUndo()
+                ? () {
+                    SelectionAction lastAction = actionStack.undo();
+                    actionStack.printStackLens();
+                    setState(() {
+                      selections
+                        ..clear()
+                        ..addAll(lastAction.selectionComponents);
+                    });
+                  }
+                : null,
           ),
-        ),
-        //base extents
-        ...selections
-            .map(
-              (selection) => CustomPaint(
-                painter: SelectionPainter(
-                    color: Colors.blue,
-                    rects: [selection.baseCaret],
-                    fill: true),
-              ),
-            )
-            .toList(),
-        //extent carets
-        ...selections
-            .map((selection) => CustomPaint(
+          ElevatedButton(
+            child: const Text("Redo"),
+            onPressed: actionStack.anymoreRedo()
+                ? () {
+                    SelectionAction lastAction = actionStack.redo();
+                    setState(() {
+                      selections
+                        ..clear()
+                        ..addAll(lastAction.selectionComponents);
+                    });
+                  }
+                : null,
+          ),
+          ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: widget.allSelections()));
+              },
+              child: const Text('Copy'))
+        ],
+      ),
+      TextSelectionGestureDetector(
+        onSingleLongTapStart: _onLongPressStart,
+        onDragSelectionStart: _onDragSelectionStart,
+        onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
+        onSingleLongTapEnd: _onSingleLongTapEnd,
+        onDoubleTapDown: _onDoubleTapDown,
+        onTapDown: _onTapDown,
+        child: Stack(children: [
+          ...selections
+              .map((selection) => CustomPaint(
+                    painter: SelectionPainter(
+                        color: Colors.green[200]!,
+                        rects: selection.selectionRects,
+                        fill: true),
+                  ))
+              .toList(),
+          SingleChildScrollView(
+            child: Text(
+              widget.text,
+              key: _textKey,
+              style: widget.style,
+            ),
+          ),
+          //base extents
+          ...selections
+              .map(
+                (selection) => CustomPaint(
                   painter: SelectionPainter(
                       color: Colors.blue,
-                      rects: [selection.extentCaret],
+                      rects: [selection.baseCaret],
                       fill: true),
-                ))
-            .toList(),
-      ]),
-    )]);
+                ),
+              )
+              .toList(),
+          //extent carets
+          ...selections
+              .map((selection) => CustomPaint(
+                    painter: SelectionPainter(
+                        color: Colors.blue,
+                        rects: [selection.extentCaret],
+                        fill: true),
+                  ))
+              .toList(),
+        ]),
+      )
+    ]);
   }
 
-  void addNewSelection({addToStack=true}) {
+  void addNewSelection({addToStack = true}) {
     SelectionComponents selection =
         Utils.getSelectionComponent(_textSelection, _renderParagraph);
     selections.add(selection);
@@ -170,8 +161,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
       //flow 3 specific code:
       isEditingSelection = true;
       editingSelectionIndex = selections.length - 1;
-      if(addToStack)
-        actionStack.push(SelectionAction(selection, false));
+      if (addToStack) actionStack.push(SelectionAction(selections, false));
     });
   }
 
@@ -182,7 +172,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
     if (sel != null) {
       setState(() {
         selections.remove(sel);
-        actionStack.push(SelectionAction(sel, true));
+        actionStack.push(SelectionAction(selections, true));
       });
     }
   }
@@ -265,6 +255,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
         selections
           ..clear()
           ..addAll(newsels);
+        actionStack.push(SelectionAction(selections, false));
       });
       awaitingThirdTap = false;
       return;

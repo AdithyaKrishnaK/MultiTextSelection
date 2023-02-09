@@ -44,7 +44,7 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
 
   @override
   void initState() {
-    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _updateAllTextRects();
     });
     widget.allSelections = () {
@@ -65,47 +65,43 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             ElevatedButton(
-                child: Text("Undo"),
-
-                onPressed: actionStack.anymoreUndo() ? (){
-                  SelectionAction lastAction = actionStack.undo();
-                  if(lastAction.isDelete){
-                    setState(() {
-                      selections.add(lastAction.selectionComponents);
-                    });
-                    log("Adding the selection, ${selections.length}");
-                  }else{
-                    setState(() {
-                      selections.remove(lastAction.selectionComponents);
-                    });
-                    log("Removing the selection, ${selections.length}");
-                  }
-                }:null,
-              ),
-            ElevatedButton(
-              child: Text("Redo"),
-
-              onPressed: actionStack.anymoreRedo() ? (){
-                SelectionAction lastAction = actionStack.redo();
-                if(!lastAction.isDelete){
-                  setState(() {
-                    selections.add(lastAction.selectionComponents);
-                  });
-                  log("Adding the selection, ${selections.length}");
-                }else{
-                  setState(() {
-                    selections.remove(lastAction.selectionComponents);
-                  });
-                  log("removing the selection, ${selections.length}");
-                }
-              }:null,
+              child: const Text("Undo"),
+              onPressed: actionStack.anymoreUndo()
+                  ? () {
+                      SelectionAction lastAction = actionStack.undo();
+                      actionStack.printStackLens();
+                      log('received selcomps: ' +
+                          lastAction.selectionComponents.length.toString());
+                      setState(() {
+                        selections
+                          ..clear()
+                          ..addAll(lastAction.selectionComponents);
+                      });
+                      log("Updated selection to length:  ${selections.length}, ${lastAction.selectionComponents.length}");
+                    }
+                  : null,
             ),
             ElevatedButton(
-                onPressed: (){
-                  Clipboard.setData(ClipboardData(text: widget.allSelections()));
-                }, child: const Text('Copy'))
+              child: const Text("Redo"),
+              onPressed: actionStack.anymoreRedo()
+                  ? () {
+                      SelectionAction lastAction = actionStack.redo();
+                      setState(() {
+                        selections
+                          ..clear()
+                          ..addAll(lastAction.selectionComponents);
+                      });
+                      log("Adding the selection, ${selections.length}");
+                    }
+                  : null,
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  Clipboard.setData(
+                      ClipboardData(text: widget.allSelections()));
+                },
+                child: const Text('Copy'))
           ],
-
         ),
         TextSelectionGestureDetector(
           onSingleLongTapStart: _onLongPressStart,
@@ -117,11 +113,11 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
           child: Stack(children: [
             ...selections
                 .map((selection) => CustomPaint(
-              painter: SelectionPainter(
-                  color: Colors.green[200]!,
-                  rects: selection.selectionRects,
-                  fill: true),
-            ))
+                      painter: SelectionPainter(
+                          color: Colors.green[200]!,
+                          rects: selection.selectionRects,
+                          fill: true),
+                    ))
                 .toList(),
             Text(
               widget.text,
@@ -132,21 +128,21 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
             ...selections
                 .map(
                   (selection) => CustomPaint(
-                painter: SelectionPainter(
-                    color: Colors.blue,
-                    rects: [selection.baseCaret],
-                    fill: true),
-              ),
-            )
+                    painter: SelectionPainter(
+                        color: Colors.blue,
+                        rects: [selection.baseCaret],
+                        fill: true),
+                  ),
+                )
                 .toList(),
             //extent carets
             ...selections
                 .map((selection) => CustomPaint(
-              painter: SelectionPainter(
-                  color: Colors.blue,
-                  rects: [selection.extentCaret],
-                  fill: true),
-            ))
+                      painter: SelectionPainter(
+                          color: Colors.blue,
+                          rects: [selection.extentCaret],
+                          fill: true),
+                    ))
                 .toList(),
           ]),
         )
@@ -159,19 +155,17 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
         Utils.getSelectionComponent(_textSelection, _renderParagraph);
     setState(() {
       selections.add(selection);
-      actionStack.push(SelectionAction(selection, false));
-
+      actionStack.push(SelectionAction(selections, false));
     });
   }
 
-  void removeSelection(SelectionComponents sel,{addToStack=true})
-  {
+  void removeSelection(SelectionComponents sel, {addToStack = true}) {
     setState(() {
       selections.remove(sel);
-      actionStack.push(SelectionAction(sel, true));
-
+      actionStack.push(SelectionAction(selections, true));
     });
   }
+
   void removeTappedSelection(TapDownDetails details) {
     // _selectionBaseOffset =
     //     _renderParagraph.getPositionForOffset(details.localPosition).offset;
@@ -275,7 +269,7 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
       selections
         ..clear()
         ..addAll(newsels);
+      actionStack.push(SelectionAction(newsels, false));
     });
   }
-
 }

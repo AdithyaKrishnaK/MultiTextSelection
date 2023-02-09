@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:math' as dart_math;
 import 'package:flutter/rendering.dart';
+import 'package:flutter/src/widgets/actions.dart';
 
 class SelectionComponents {
   Rect baseCaret;
@@ -13,49 +14,62 @@ class SelectionComponents {
 }
 
 class SelectionAction {
-  SelectionComponents selectionComponents;
+  late List<SelectionComponents> selectionComponents;
   bool isDelete;
-  SelectionAction(this.selectionComponents,this.isDelete);
-
+  SelectionAction(
+      List<SelectionComponents> inSelectionComponents, this.isDelete) {
+    selectionComponents = [...inSelectionComponents];
+  }
 }
 
-class SelectionActionStack{
+class SelectionActionStack {
+  SelectionAction emptySel = SelectionAction([], false);
   List<SelectionAction> _selectionActions = [];
   int _index = -1;
   SelectionActionStack();
-  void push(SelectionAction selectionAction){
+
+  SelectionAction get curr => _selectionActions[_index];
+  void push(SelectionAction selectionAction) {
     cutStack();
     _selectionActions.add(selectionAction);
-    _index+=1;
+    _index += 1;
   }
 
-  SelectionAction undo(){
+  SelectionAction undo() {
     log("Undo $_index");
-    _index-=1;
-    return _selectionActions[_index+1];
+    _index -= 1;
+    return (_index != -1) ? _selectionActions[_index] : emptySel;
   }
 
-  SelectionAction redo(){
-    log("Redo ${_index+1}");
-    _index+=1;
+  SelectionAction redo() {
+    log("Redo ${_index + 1}");
+    _index += 1;
     return _selectionActions[_index];
   }
 
-  bool anymoreUndo(){
-    return _index>=0;
-  }
-  bool anymoreRedo(){
-    return _index<_selectionActions.length-1;
+  bool anymoreUndo() {
+    return _index >= 0;
   }
 
-  void cutStack(){
+  bool anymoreRedo() {
+    return _index < _selectionActions.length - 1;
+  }
+
+  printStackLens() {
+    for (final selcomps in _selectionActions) {
+      log(selcomps.selectionComponents.length.toString());
+    }
+  }
+
+  void cutStack() {
     List<SelectionAction> _newSelectionActions = [];
-    for(int i=0;i<=_index;i++){
+    for (int i = 0; i <= _index; i++) {
       _newSelectionActions.add(_selectionActions[i]);
     }
     _selectionActions = _newSelectionActions;
   }
-  void clear(){
+
+  void clear() {
     _selectionActions = [];
   }
 }
