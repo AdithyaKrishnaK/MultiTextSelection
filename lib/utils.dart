@@ -235,3 +235,17 @@ class SelectionPainter extends CustomPainter {
     return true;
   }
 }
+
+class CaretPainter extends SelectionPainter {
+  CaretPainter(
+      {required Color color, required List<Rect> rects, bool fill = true})
+      : super(color: color, rects: rects, fill: fill);
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paint.style = PaintingStyle.fill;
+    for (final rect in _rects) {
+      canvas.drawCircle(rect.bottomCenter, 10, _paint);
+    }
+    super.paint(canvas, size);
+  }
+}

@@ -132,7 +132,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
             ...selections
                 .map(
                   (selection) => CustomPaint(
-                    painter: SelectionPainter(
+                    painter: CaretPainter(
                         color: Colors.blue,
                         rects: [selection.baseCaret],
                         fill: true),
@@ -142,7 +142,7 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
             //extent carets
             ...selections
                 .map((selection) => CustomPaint(
-                      painter: SelectionPainter(
+                      painter: CaretPainter(
                           color: Colors.blue,
                           rects: [selection.extentCaret],
                           fill: true),
