@@ -31,6 +31,8 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
   late bool isEditingBaseCaret;
 
   bool awaitingThirdTap = false;
+
+  final ScrollController _scrollController = ScrollController();
   // static const emphasisFactorWidth = 2;
   // static const emphasisFactorHeight = 1.5;
   RenderParagraph get _renderParagraph =>
@@ -107,50 +109,56 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
         onSingleLongTapEnd: _onSingleLongTapEnd,
         onDoubleTapDown: _onDoubleTapDown,
         onTapDown: _onTapDown,
-        child: GestureDetector(
-          onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
-          onHorizontalDragEnd: _onSingleLongTapEnd,
-          onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
-          onVerticalDragEnd: _onSingleLongTapEnd,
-          child: Stack(children: [
-            ...selections
-                .map((selection) => CustomPaint(
-                      painter: SelectionPainter(
-                          color: Colors.green[200]!,
-                          rects: selection.selectionRects,
-                          fill: true),
-                    ))
-                .toList(),
-            SingleChildScrollView(
-              child: Text(
-                widget.text,
-                key: _textKey,
-                style: widget.style,
-              ),
-            ),
-            //base extents
-            ...selections
-                .map(
-                  (selection) => CustomPaint(
+        child: Stack(children: [
+          ...selections
+              .map((selection) => CustomPaint(
+                    painter: SelectionPainter(
+                        color: Colors.green[200]!,
+                        rects: selection.selectionRects,
+                        fill: true),
+                  ))
+              .toList(),
+          GestureDetector(
+              onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
+              onHorizontalDragEnd: _onSingleLongTapEnd,
+              // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
+              // onVerticalDragEnd: _onSingleLongTapEnd,
+              child: SingleChildScrollView(
+                child: Text(
+                  widget.text,
+                  key: _textKey,
+                  style: widget.style,
+                ),
+                controller: _scrollController,
+              )),
+          //base extents
+          ...selections
+              .map(
+                (selection) => GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    _onSingleLongTapMoveUpdateCaret(
+                        details, selections.indexOf(selection), true);
+                  },
+                  child: CustomPaint(
                     painter: CaretPainter(
                         color: Colors.blue,
                         rects: [selection.baseCaret],
                         fill: true),
                   ),
-                )
-                .toList(),
-            //extent carets
-            ...selections
-                .map((selection) => CustomPaint(
-                      painter: CaretPainter(
-                          color: Colors.blue,
-                          rects: [selection.extentCaret],
-                          fill: true),
-                    ))
-                .toList(),
-          ]),
-        ),
-      )
+                ),
+              )
+              .toList(),
+          //extent carets
+          ...selections
+              .map((selection) => CustomPaint(
+                    painter: CaretPainter(
+                        color: Colors.blue,
+                        rects: [selection.extentCaret],
+                        fill: true),
+                  ))
+              .toList(),
+        ]),
+      ),
     ]);
   }
 
@@ -285,6 +293,10 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   void _onSingleLongTapMoveUpdate(var details) {
     if (!isEditingSelection) {
+      // _scrollController.animateTo(
+      //   _scrollController.position,
+      //   duration: Duration.zero,
+      // );
       return;
     }
     // _emphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
@@ -360,4 +372,23 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
   //     }
   //   });
   // }
+
+  void _onSingleLongTapMoveUpdateCaret(var details, int index, bool iebc) {
+    // _emphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
+    int fingerPoint =
+        _renderParagraph.getPositionForOffset(details.localPosition).offset;
+    isEditingSelection = true;
+    editingSelectionIndex = index;
+    isEditingBaseCaret = iebc;
+    if (editingSelection == null) {
+      return;
+    }
+    late TextSelection newTextSelection = Utils.getNewTextSelection(
+        editingSelection!, fingerPoint, isEditingBaseCaret);
+    log(editingSelectionIndex.toString());
+    setState(() {
+      selections[editingSelectionIndex] =
+          Utils.getSelectionComponent(newTextSelection, _renderParagraph);
+    });
+  }
 }
