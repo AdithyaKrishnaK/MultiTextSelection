@@ -113,8 +113,8 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
           child: GestureDetector(
             onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
             onHorizontalDragEnd: _onSingleLongTapEnd,
-            onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
-            onVerticalDragEnd: _onSingleLongTapEnd,
+            // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
+            // onVerticalDragEnd: _onSingleLongTapEnd,
             child: Stack(children: [
               ...selections
                   .map((selection) => CustomPaint(
