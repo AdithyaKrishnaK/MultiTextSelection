@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:math' as dart_math;
 import 'package:flutter/rendering.dart';
-import 'package:flutter/src/widgets/actions.dart';
 
 class SelectionComponents {
   Rect baseCaret;
@@ -77,6 +76,7 @@ class SelectionActionStack {
 
 class Utils {
   static const caretProximityThres = 5;
+  static const barProximityThres = 2;
   static List getCaretRectsAndOffsets(
       TextSelection selection, RenderParagraph renderParagraph) {
     final caretExtentOffset =
@@ -129,6 +129,30 @@ class Utils {
         editingBaseCaret = true;
         log('close to base caret');
       } else if ((sel.extentOffset - fingerPoint).abs() < caretProximityThres) {
+        selectionIndex = selections.indexOf(sel);
+        log('close to extent caret');
+      }
+    }
+    return [selectionIndex, editingBaseCaret];
+  }
+
+  static List getCloseSelectionBarIndex(Offset localPosition,
+      RenderParagraph renderParagraph, List<SelectionComponents> selections) {
+    int fingerPoint =
+        renderParagraph.getPositionForOffset(localPosition).offset;
+    log('fingerpoint: ' + fingerPoint.toString());
+    int selectionIndex = -1;
+    bool editingBaseCaret = false;
+    for (final sel in selections) {
+      log('selection vals: ' +
+          sel.baseOffset.toString() +
+          ', ' +
+          sel.extentOffset.toString());
+      if ((sel.baseOffset - fingerPoint).abs() < barProximityThres) {
+        selectionIndex = selections.indexOf(sel);
+        editingBaseCaret = true;
+        log('close to base caret');
+      } else if ((sel.extentOffset - fingerPoint).abs() < barProximityThres) {
         selectionIndex = selections.indexOf(sel);
         log('close to extent caret');
       }
@@ -244,7 +268,7 @@ class CaretPainter extends SelectionPainter {
   void paint(Canvas canvas, Size size) {
     _paint.style = PaintingStyle.fill;
     for (final rect in _rects) {
-      canvas.drawCircle(rect.bottomCenter, 10, _paint);
+      canvas.drawCircle(rect.bottomCenter + const Offset(0, -9.0), 5, _paint);
     }
     super.paint(canvas, size);
   }
