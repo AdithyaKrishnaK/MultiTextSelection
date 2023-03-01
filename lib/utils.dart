@@ -96,7 +96,7 @@ class Utils {
 
   static TextSelection getSelectedWord(
       Offset localPosition, RenderParagraph renderParagraph, String text) {
-    List<String> words = text.split(' ');
+    List<String> words = text.split(RegExp(r'\s'));
     int _baseOffset = 0;
     int _extentOffset = text.length;
     int fingerPoint =
@@ -110,6 +110,28 @@ class Utils {
       _baseOffset += (word.length + 1);
     }
     return TextSelection(baseOffset: _baseOffset, extentOffset: _extentOffset);
+  }
+
+  static SelectionComponents? getSelection(Offset localPosition,
+      List<SelectionComponents> selections, RenderParagraph renderParagraph) {
+    int fingerPoint =
+        renderParagraph.getPositionForOffset(localPosition).offset;
+    log('tap at: ' + fingerPoint.toString());
+    for (final selection in selections) {
+      log('selection vals: ' +
+          selection.baseOffset.toString() +
+          ', ' +
+          selection.extentOffset.toString());
+      log('caret left vals: ' +
+          selection.baseCaret.left.toString() +
+          ', ' +
+          selection.extentCaret.left.toString());
+      if (selection.baseOffset <= fingerPoint &&
+          fingerPoint <= selection.extentOffset) {
+        return selection;
+      }
+    }
+    return null;
   }
 
   static List getCloseSelectionIndex(Offset localPosition,

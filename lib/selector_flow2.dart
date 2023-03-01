@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -13,14 +12,17 @@ class SelectorFlow2 extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<SelectorFlow2> createState() => _SelectorFlow2State();
+  State<SelectorFlow2> createState() => SelectorFlow2State();
 }
 
-class _SelectorFlow2State extends State<SelectorFlow2> {
+class SelectorFlow2State extends State<SelectorFlow2> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
   final List<SelectionComponents> selections = [];
+  final List<SelectionComponents> highlights = [];
+  List<SelectionComponents> get getSelections => selections;
   SelectionActionStack actionStack = SelectionActionStack();
+  SelectionActionStack get getactionStack => actionStack;
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
   bool isEditingSelection = false;
@@ -64,36 +66,23 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             ElevatedButton(
-              child: const Text("Undo"),
-              onPressed: actionStack.anymoreUndo()
-                  ? () {
-                      SelectionAction lastAction = actionStack.undo();
-                      actionStack.printStackLens();
-                      log('received selcomps: ' +
-                          lastAction.selectionComponents.length.toString());
-                      setState(() {
-                        selections
-                          ..clear()
-                          ..addAll(lastAction.selectionComponents);
-                      });
-                      log("Updated selection to length:  ${selections.length}, ${lastAction.selectionComponents.length}");
+                onPressed: () {
+                  setState(() {
+                    for (final sel in selections) {
+                      highlights.insert(highlights.length, sel);
+                      // widget.text.substring(sel.baseOffset, sel.extentOffset + 1);
                     }
-                  : null,
-            ),
+                    selections.removeRange(0, selections.length);
+                  });
+                },
+                child: const Text('Highlight')),
             ElevatedButton(
-              child: const Text("Redo"),
-              onPressed: actionStack.anymoreRedo()
-                  ? () {
-                      SelectionAction lastAction = actionStack.redo();
-                      setState(() {
-                        selections
-                          ..clear()
-                          ..addAll(lastAction.selectionComponents);
-                      });
-                      log("Adding the selection, ${selections.length}");
-                    }
-                  : null,
-            ),
+                onPressed: () {
+                  setState(() {
+                    highlights.removeRange(0, highlights.length);
+                  });
+                },
+                child: const Text('Delete Highlight')),
             ElevatedButton(
                 onPressed: () {
                   Clipboard.setData(
@@ -114,11 +103,20 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
             onHorizontalDragEnd: _onSingleLongTapEnd,
             // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
             // onVerticalDragEnd: _onSingleLongTapEnd,
+
             child: Stack(children: [
               ...selections
                   .map((selection) => CustomPaint(
                         painter: SelectionPainter(
                             color: Colors.green[200]!,
+                            rects: selection.selectionRects,
+                            fill: true),
+                      ))
+                  .toList(),
+              ...highlights
+                  .map((selection) => CustomPaint(
+                        painter: SelectionPainter(
+                            color: Colors.yellow[200]!,
                             rects: selection.selectionRects,
                             fill: true),
                       ))
@@ -177,22 +175,18 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
     SelectionComponents? sel = _getSelection(details.localPosition);
     if (sel != null) {
       removeSelection(sel);
+    } else {
+      setState(() {
+        selections.removeRange(0, selections.length);
+        actionStack.push(SelectionAction(selections, true));
+      });
     }
   }
 
   SelectionComponents? _getSelection(Offset localPosition) {
     int fingerPoint =
         _renderParagraph.getPositionForOffset(localPosition).offset;
-    log('tap at: ' + fingerPoint.toString());
     for (final selection in selections) {
-      log('selection vals: ' +
-          selection.baseOffset.toString() +
-          ', ' +
-          selection.extentOffset.toString());
-      log('caret left vals: ' +
-          selection.baseCaret.left.toString() +
-          ', ' +
-          selection.extentCaret.left.toString());
       if (selection.baseOffset <= fingerPoint &&
           fingerPoint <= selection.extentOffset) {
         return selection;
@@ -217,20 +211,17 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
   }
 
   void _onDoubleTapDown(TapDownDetails details) {
-    log('double tap down received.');
     removeTappedSelection(details);
   }
 
-  void _onDragSelectionStart(DragStartDetails details) {
-    log('on drag selection start');
-  }
+  void _onDragSelectionStart(DragStartDetails details) {}
 
   void _onTapDown(TapDownDetails details) {
     if (selections.isEmpty) {
       return;
     }
 
-    List indexbasecaret = Utils.getCloseSelectionIndex(
+    List indexbasecaret = Utils.getCloseSelectionBarIndex(
         details.localPosition, _renderParagraph, selections);
     if (indexbasecaret[0] != -1) {
       isEditingSelection = true;
@@ -240,7 +231,6 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
     } else {
       isEditingSelection = false;
     }
-    log(indexbasecaret.toString());
   }
 
   void _onSingleLongTapMoveUpdate(var details) {
@@ -255,7 +245,6 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
     }
     late TextSelection newTextSelection = Utils.getNewTextSelection(
         editingSelection!, fingerPoint, isEditingBaseCaret);
-    log(editingSelectionIndex.toString());
     setState(() {
       selections[editingSelectionIndex] =
           Utils.getSelectionComponent(newTextSelection, _renderParagraph);
@@ -269,12 +258,30 @@ class _SelectorFlow2State extends State<SelectorFlow2> {
     isEditingSelection = false;
     List<SelectionComponents> newsels =
         Utils.collapseSelections(selections, _renderParagraph);
-    log('newsels len: ' + newsels.length.toString());
     setState(() {
       selections
         ..clear()
         ..addAll(newsels);
       actionStack.push(SelectionAction(newsels, false));
+    });
+  }
+
+  void dostate() {
+    SelectionAction lastAction = getactionStack.undo();
+    getactionStack.printStackLens();
+    setState(() {
+      getSelections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
+    });
+  }
+
+  void dostate1() {
+    SelectionAction lastAction = actionStack.redo();
+    setState(() {
+      selections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
     });
   }
 }

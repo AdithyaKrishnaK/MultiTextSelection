@@ -1,3 +1,4 @@
+// ignore: must_be_immutable
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -14,14 +15,19 @@ class SelectorFlow3 extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<SelectorFlow3> createState() => _SelectorFlow3State();
+  State<SelectorFlow3> createState() => SelectorFlow3State();
 }
 
-class _SelectorFlow3State extends State<SelectorFlow3> {
+class SelectorFlow3State extends State<SelectorFlow3> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
+  final List<SelectionComponents> highlights = [];
   final List<SelectionComponents> selections = [];
+  List<SelectionComponents> get getSelections => selections;
   SelectionActionStack actionStack = SelectionActionStack();
+  SelectionActionStack get getactionStack => actionStack;
+  void func() {}
+
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
   static const thirdTapTimeout = 1000;
@@ -29,10 +35,9 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
   int editingSelectionIndex = 0;
   SelectionComponents? editingSelection;
   late bool isEditingBaseCaret;
-
   bool awaitingThirdTap = false;
-
   final ScrollController _scrollController = ScrollController();
+
   // static const emphasisFactorWidth = 2;
   // static const emphasisFactorHeight = 1.5;
   RenderParagraph get _renderParagraph =>
@@ -69,32 +74,23 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           ElevatedButton(
-            child: const Text("Undo"),
-            onPressed: actionStack.anymoreUndo()
-                ? () {
-                    SelectionAction lastAction = actionStack.undo();
-                    actionStack.printStackLens();
-                    setState(() {
-                      selections
-                        ..clear()
-                        ..addAll(lastAction.selectionComponents);
-                    });
+              onPressed: () {
+                setState(() {
+                  for (final sel in selections) {
+                    highlights.insert(highlights.length, sel);
+                    // widget.text.substring(sel.baseOffset, sel.extentOffset + 1);
                   }
-                : null,
-          ),
+                  selections.removeRange(0, selections.length);
+                });
+              },
+              child: const Text('Highlight')),
           ElevatedButton(
-            child: const Text("Redo"),
-            onPressed: actionStack.anymoreRedo()
-                ? () {
-                    SelectionAction lastAction = actionStack.redo();
-                    setState(() {
-                      selections
-                        ..clear()
-                        ..addAll(lastAction.selectionComponents);
-                    });
-                  }
-                : null,
-          ),
+              onPressed: () {
+                setState(() {
+                  highlights.removeRange(0, highlights.length);
+                });
+              },
+              child: const Text('Delete Highlight')),
           ElevatedButton(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: widget.allSelections()));
@@ -103,57 +99,65 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
         ],
       ),
       TextSelectionGestureDetector(
-        onSingleLongTapStart: _onLongPressStart,
-        onDragSelectionStart: _onDragSelectionStart,
-        onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
-        onSingleLongTapEnd: _onSingleLongTapEnd,
-        onDoubleTapDown: _onDoubleTapDown,
-        onTapDown: _onTapDown,
-        child: GestureDetector(
-          onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
-          onHorizontalDragEnd: _onSingleLongTapEnd,
-          // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
-          // onVerticalDragEnd: _onSingleLongTapEnd,
-          child: Stack(children: [
-            ...selections
-                .map((selection) => CustomPaint(
-                      painter: SelectionPainter(
-                          color: Colors.green[200]!,
-                          rects: selection.selectionRects,
-                          fill: true),
-                    ))
-                .toList(),
-            SingleChildScrollView(
-              child: Text(
-                widget.text,
-                key: _textKey,
-                style: widget.style,
+          onSingleLongTapStart: _onLongPressStart,
+          onDragSelectionStart: _onDragSelectionStart,
+          onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
+          onSingleLongTapEnd: _onSingleLongTapEnd,
+          onDoubleTapDown: _onDoubleTapDown,
+          onTapDown: _onTapDown,
+          child: GestureDetector(
+            onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
+            onHorizontalDragEnd: _onSingleLongTapEnd,
+            // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
+            // onVerticalDragEnd: _onSingleLongTapEnd,
+
+            child: Stack(children: [
+              ...selections
+                  .map((selection) => CustomPaint(
+                        painter: SelectionPainter(
+                            color: Colors.green[200]!,
+                            rects: selection.selectionRects,
+                            fill: true),
+                      ))
+                  .toList(),
+              ...highlights
+                  .map((selection) => CustomPaint(
+                        painter: SelectionPainter(
+                            color: Colors.yellow[200]!,
+                            rects: selection.selectionRects,
+                            fill: true),
+                      ))
+                  .toList(),
+              SingleChildScrollView(
+                child: Text(
+                  widget.text,
+                  key: _textKey,
+                  style: widget.style,
+                ),
+                controller: _scrollController,
               ),
-              controller: _scrollController,
-            ),
-            //base extents
-            ...selections
-                .map(
-                  (selection) => CustomPaint(
-                    painter: CaretPainter(
-                        color: Colors.blue,
-                        rects: [selection.baseCaret],
-                        fill: true),
-                  ),
-                )
-                .toList(),
-            //extent carets
-            ...selections
-                .map((selection) => CustomPaint(
+              //base extents
+              ...selections
+                  .map(
+                    (selection) => CustomPaint(
                       painter: CaretPainter(
                           color: Colors.blue,
-                          rects: [selection.extentCaret],
+                          rects: [selection.baseCaret],
                           fill: true),
-                    ))
-                .toList(),
-          ]),
-        ),
-      )
+                    ),
+                  )
+                  .toList(),
+              //extent carets
+              ...selections
+                  .map((selection) => CustomPaint(
+                        painter: CaretPainter(
+                            color: Colors.blue,
+                            rects: [selection.extentCaret],
+                            fill: true),
+                      ))
+                  .toList(),
+            ]),
+          ))
     ]);
   }
 
@@ -210,8 +214,13 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
   }
 
   void _onLongPressStart(LongPressStartDetails details) {
-    if (!isEditingSelection) {
+    final sel = _getSelection(details.localPosition);
+    if (sel != null && !isEditingSelection) {
       removeTappedSelection(details.localPosition);
+    } else {
+      setState(() {
+        selections.removeRange(0, selections.length);
+      });
     }
   }
 
@@ -288,10 +297,6 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
 
   void _onSingleLongTapMoveUpdate(var details) {
     if (!isEditingSelection) {
-      // _scrollController.animateTo(
-      //   _scrollController.position,
-      //   duration: Duration.zero,
-      // );
       return;
     }
     // _emphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
@@ -322,8 +327,28 @@ class _SelectorFlow3State extends State<SelectorFlow3> {
         ..clear()
         ..addAll(newsels);
       actionStack.push(SelectionAction(newsels, false));
+      actionStack.printStackLens();
     });
     // _unemphasizeCaretRect(editingSelectionIndex, isEditingBaseCaret);
+  }
+
+  void dostate() {
+    SelectionAction lastAction = getactionStack.undo();
+    getactionStack.printStackLens();
+    setState(() {
+      getSelections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
+    });
+  }
+
+  void dostate1() {
+    SelectionAction lastAction = actionStack.redo();
+    setState(() {
+      selections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
+    });
   }
 
   // void _emphasizeCaretRect(int editingSelectionIndex, bool isBaseCaret) {

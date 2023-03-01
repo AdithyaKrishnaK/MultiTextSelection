@@ -14,14 +14,17 @@ class SelectorFlow4 extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<SelectorFlow4> createState() => _SelectorFlow4State();
+  State<SelectorFlow4> createState() => SelectorFlow4State();
 }
 
-class _SelectorFlow4State extends State<SelectorFlow4> {
+class SelectorFlow4State extends State<SelectorFlow4> {
   final _textKey = GlobalKey();
   final List<Rect> _textRects = [];
+  final List<SelectionComponents> highlights = [];
   final List<SelectionComponents> selections = [];
+  List<SelectionComponents> get getSelections => selections;
   SelectionActionStack actionStack = SelectionActionStack();
+  SelectionActionStack get getactionStack => actionStack;
   late TextSelection _textSelection;
   // late int _selectionBaseOffset;
   bool isEditingSelection = false;
@@ -64,89 +67,93 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           ElevatedButton(
-            child: const Text("Undo"),
-            onPressed: actionStack.anymoreUndo()
-                ? () {
-                    SelectionAction lastAction = actionStack.undo();
-                    setState(() {
-                      selections
-                        ..clear()
-                        ..addAll(lastAction.selectionComponents);
-                    });
+              onPressed: () {
+                setState(() {
+                  for (final sel in selections) {
+                    highlights.insert(highlights.length, sel);
+                    // widget.text.substring(sel.baseOffset, sel.extentOffset + 1);
                   }
-                : null,
-          ),
+                  selections.removeRange(0, selections.length);
+                });
+              },
+              child: const Text('Highlight')),
           ElevatedButton(
-            child: const Text("Redo"),
-            onPressed: actionStack.anymoreRedo()
-                ? () {
-                    SelectionAction lastAction = actionStack.redo();
-                    setState(() {
-                      selections
-                        ..clear()
-                        ..addAll(lastAction.selectionComponents);
-                    });
-                  }
-                : null,
-          ),
+              onPressed: () {
+                setState(() {
+                  highlights.removeRange(0, highlights.length);
+                });
+              },
+              child: const Text('Delete Highlight')),
           ElevatedButton(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: widget.allSelections()));
               },
-              child: const Text('Copy'))
+              child: const Text('Copy')),
+          ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: widget.allSelections()));
+              },
+              child: const Text('Highlight'))
         ],
       ),
       TextSelectionGestureDetector(
-        onSingleLongTapStart: _onLongPressStart,
-        onDragSelectionStart: _onDragSelectionStart,
-        onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
-        onSingleLongTapEnd: _onSingleLongTapEnd,
-        onDoubleTapDown: _onDoubleTapDown,
-        onTapDown: _onTapDown,
-        child: GestureDetector(
-          onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
-          onHorizontalDragEnd: _onSingleLongTapEnd,
-          // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
-          // onVerticalDragEnd: _onSingleLongTapEnd,
-          child: Stack(children: [
-            ...selections
-                .map((selection) => CustomPaint(
-                      painter: SelectionPainter(
-                          color: Colors.green[200]!,
-                          rects: selection.selectionRects,
-                          fill: true),
-                    ))
-                .toList(),
-            SingleChildScrollView(
-              child: Text(
-                widget.text,
-                key: _textKey,
-                style: widget.style,
+          onSingleLongTapStart: _onLongPressStart,
+          onDragSelectionStart: _onDragSelectionStart,
+          onSingleLongTapMoveUpdate: _onSingleLongTapMoveUpdate,
+          onSingleLongTapEnd: _onSingleLongTapEnd,
+          onDoubleTapDown: _onDoubleTapDown,
+          onTapDown: _onTapDown,
+          child: GestureDetector(
+            onHorizontalDragUpdate: _onSingleLongTapMoveUpdate,
+            onHorizontalDragEnd: _onSingleLongTapEnd,
+            // onVerticalDragUpdate: _onSingleLongTapMoveUpdate,
+            // onVerticalDragEnd: _onSingleLongTapEnd,
+            child: Stack(children: [
+              ...selections
+                  .map((selection) => CustomPaint(
+                        painter: SelectionPainter(
+                            color: Colors.green[200]!,
+                            rects: selection.selectionRects,
+                            fill: true),
+                      ))
+                  .toList(),
+              ...highlights
+                  .map((selection) => CustomPaint(
+                        painter: SelectionPainter(
+                            color: Colors.yellow[200]!,
+                            rects: selection.selectionRects,
+                            fill: true),
+                      ))
+                  .toList(),
+              SingleChildScrollView(
+                child: Text(
+                  widget.text,
+                  key: _textKey,
+                  style: widget.style,
+                ),
               ),
-            ),
-            //base extents
-            ...selections
-                .map(
-                  (selection) => CustomPaint(
-                    painter: CaretPainter(
-                        color: Colors.blue,
-                        rects: [selection.baseCaret],
-                        fill: true),
-                  ),
-                )
-                .toList(),
-            //extent carets
-            ...selections
-                .map((selection) => CustomPaint(
+              //base extents
+              ...selections
+                  .map(
+                    (selection) => CustomPaint(
                       painter: CaretPainter(
                           color: Colors.blue,
-                          rects: [selection.extentCaret],
+                          rects: [selection.baseCaret],
                           fill: true),
-                    ))
-                .toList(),
-          ]),
-        ),
-      )
+                    ),
+                  )
+                  .toList(),
+              //extent carets
+              ...selections
+                  .map((selection) => CustomPaint(
+                        painter: CaretPainter(
+                            color: Colors.blue,
+                            rects: [selection.extentCaret],
+                            fill: true),
+                      ))
+                  .toList(),
+            ]),
+          ))
     ]);
   }
 
@@ -266,6 +273,25 @@ class _SelectorFlow4State extends State<SelectorFlow4> {
         ..clear()
         ..addAll(newsels);
       actionStack.push(SelectionAction(newsels, false));
+    });
+  }
+
+  void dostate() {
+    SelectionAction lastAction = getactionStack.undo();
+    getactionStack.printStackLens();
+    setState(() {
+      getSelections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
+    });
+  }
+
+  void dostate1() {
+    SelectionAction lastAction = actionStack.redo();
+    setState(() {
+      selections
+        ..clear()
+        ..addAll(lastAction.selectionComponents);
     });
   }
 }
