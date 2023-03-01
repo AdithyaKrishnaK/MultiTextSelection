@@ -137,6 +137,7 @@ class SelectorFlow4State extends State<SelectorFlow4> {
                   .map(
                     (selection) => CustomPaint(
                       painter: CaretPainter(
+                          isBase: true,
                           color: Colors.blue,
                           rects: [selection.baseCaret],
                           fill: true),
@@ -147,6 +148,7 @@ class SelectorFlow4State extends State<SelectorFlow4> {
               ...selections
                   .map((selection) => CustomPaint(
                         painter: CaretPainter(
+                            isBase: false,
                             color: Colors.blue,
                             rects: [selection.extentCaret],
                             fill: true),

@@ -139,21 +139,35 @@ class SelectorFlow3State extends State<SelectorFlow3> {
               //base extents
               ...selections
                   .map(
-                    (selection) => CustomPaint(
-                      painter: CaretPainter(
-                          color: Colors.blue,
-                          rects: [selection.baseCaret],
-                          fill: true),
+                    (selection) => GestureDetector(
+                      onHorizontalDragUpdate: (details) {
+                        onCaretMoveUpdate(
+                            details, selections.indexOf(selection), true);
+                      },
+                      child: CustomPaint(
+                        painter: CaretPainter(
+                            isBase: true,
+                            color: Colors.blue,
+                            rects: [selection.baseCaret],
+                            fill: true),
+                      ),
                     ),
                   )
                   .toList(),
               //extent carets
               ...selections
-                  .map((selection) => CustomPaint(
-                        painter: CaretPainter(
-                            color: Colors.blue,
-                            rects: [selection.extentCaret],
-                            fill: true),
+                  .map((selection) => GestureDetector(
+                        onHorizontalDragUpdate: (details) {
+                          onCaretMoveUpdate(
+                              details, selections.indexOf(selection), false);
+                        },
+                        child: CustomPaint(
+                          painter: CaretPainter(
+                              isBase: false,
+                              color: Colors.blue,
+                              rects: [selection.extentCaret],
+                              fill: true),
+                        ),
                       ))
                   .toList(),
             ]),
@@ -305,6 +319,24 @@ class SelectorFlow3State extends State<SelectorFlow3> {
     if (editingSelection == null) {
       return;
     }
+    late TextSelection newTextSelection = Utils.getNewTextSelection(
+        editingSelection!, fingerPoint, isEditingBaseCaret);
+    log(editingSelectionIndex.toString());
+    setState(() {
+      selections[editingSelectionIndex] =
+          Utils.getSelectionComponent(newTextSelection, _renderParagraph);
+    });
+  }
+
+  void onCaretMoveUpdate(var details, int esi, bool isBase) {
+    if (!isEditingSelection) {
+      isEditingSelection = true;
+      editingSelectionIndex = esi;
+      isEditingBaseCaret = isBase;
+      editingSelection = selections[editingSelectionIndex];
+    }
+    int fingerPoint =
+        _renderParagraph.getPositionForOffset(details.localPosition).offset;
     late TextSelection newTextSelection = Utils.getNewTextSelection(
         editingSelection!, fingerPoint, isEditingBaseCaret);
     log(editingSelectionIndex.toString());

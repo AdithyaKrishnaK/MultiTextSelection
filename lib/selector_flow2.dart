@@ -133,6 +133,7 @@ class SelectorFlow2State extends State<SelectorFlow2> {
                       painter: CaretPainter(
                           color: Colors.blue,
                           rects: [selection.baseCaret],
+                          isBase: true,
                           fill: true),
                     ),
                   )
@@ -143,6 +144,7 @@ class SelectorFlow2State extends State<SelectorFlow2> {
                         painter: CaretPainter(
                             color: Colors.blue,
                             rects: [selection.extentCaret],
+                            isBase: false,
                             fill: true),
                       ))
                   .toList(),

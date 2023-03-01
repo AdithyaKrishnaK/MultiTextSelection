@@ -283,14 +283,24 @@ class SelectionPainter extends CustomPainter {
 }
 
 class CaretPainter extends SelectionPainter {
+  bool isBase;
+  double radius = 10;
   CaretPainter(
-      {required Color color, required List<Rect> rects, bool fill = true})
+      {required Color color,
+      required List<Rect> rects,
+      bool fill = true,
+      required this.isBase})
       : super(color: color, rects: rects, fill: fill);
   @override
   void paint(Canvas canvas, Size size) {
     _paint.style = PaintingStyle.fill;
     for (final rect in _rects) {
-      canvas.drawCircle(rect.bottomCenter + const Offset(0, -9.0), 5, _paint);
+      double offsetx = radius;
+      if (isBase) {
+        offsetx = -offsetx;
+      }
+      canvas.drawCircle(
+          rect.bottomCenter + Offset(offsetx, -radius), radius, _paint);
     }
     super.paint(canvas, size);
   }
